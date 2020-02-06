@@ -10,14 +10,9 @@ int main(int argc, const char **argv)
 	pid_t process_ids[8];
 	//memset(procedd_ids, 1, 8*sizeof(pid_t));
 
-	// now make the pipe handles, this will be dynamicall allocated soon
-	int p[2];
+	// now make the pipe handles, this will be dynamically allocated soon
+	int p[8][2];
 
-	if(pipe(p) < 0)
-	{
-		printf("Error: Couldn't create pipe file handles.\n");
-		return -1;
-	}
 
 	// lets get the number of processes from program input
 	if(argc < 2)
@@ -38,15 +33,41 @@ int main(int argc, const char **argv)
 		processn = 1;
 	}
 
-	for(int i = 0; i < processn; i++)
+	// Create the pipes
+	for(int i = 0; i < 8; i++)
 	{
-		process_ids[i] = fork();
-		
-		if(process_ids[i] == 0)
-			break;
+		if(pipe(p[i]) < 0)
+		{
+			printf("Error: Couldn't create pipe file handles.\n");
+			return -1;
+		}
 	}
 
-	printf("Hi! I am process number %d \n", getpid());
+	// Create the child processes
+	for(int i = 0; i < processn; i++)
+	{
+		// We only want the parent to be creating children
+		if(is_parent)
+			process_ids[i] = fork();
+		
+		// Tell the child that they are in fact a child.
+		if(process_ids[i] == 0)
+		{
+			is_parent = 0;
+			break;
+		}
+	}
+
+	// A bit of testing
+	printf("Hi! I am process number %d", getpid());
+	if(is_parent)
+	{
+		printf(", I am the parent.\n");
+	}
+	else
+	{
+		printf(", I am a child.\n");
+	}
 
 	return 0;
 	
