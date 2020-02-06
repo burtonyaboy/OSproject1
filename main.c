@@ -5,9 +5,10 @@
 int main(int argc, const char **argv)
 {
 	// default number of processes
-	int pid, processn = 1;
+	int pid[8], processn = 1, is_parent = 1;
 	// max 8 processes for now, later we can dynamically allocate this
 	pid_t process_ids[8];
+	//memset(procedd_ids, 1, 8*sizeof(pid_t));
 
 	// now make the pipe handles, this will be dynamicall allocated soon
 	int p[2];
@@ -37,19 +38,15 @@ int main(int argc, const char **argv)
 		processn = 1;
 	}
 
-	for(int i = 1; i < processn; i++)
+	for(int i = 0; i < processn; i++)
 	{
-		// This is where the child process operates
-		if((pid = fork()) > 0)
-		{
-			printf("I'm a child process\n");
-		}
-		// This is where the parent process operates
-		else
-		{
-			printf("I'm the parent process\n");
-		}
+		process_ids[i] = fork();
+		
+		if(process_ids[i] == 0)
+			break;
 	}
+
+	printf("Hi! I am process number %d \n", getpid());
 
 	return 0;
 	
