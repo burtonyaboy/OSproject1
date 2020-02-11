@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 
 struct child_data
 {
@@ -131,9 +132,18 @@ int main(int argc, const char **argv)
 			printf("Process %d couldn't read from parent!!!\n", child_num);
 
 		// Print the results (for test purposes)
-		printf("I am process %d and I do start: %f end: %f range: %d\n", child_num, c->start, c->end, c->range);
+		//printf("I am process %d and I do start: %f end: %f range: %d\n", child_num, c->start, c->end, c->range);
 		
-		/* TODO: add calculations */
+		/* Do the calculations */
+		double throwaway = 1.23;
+		// Start and end at values given by parent, increment one step each time.
+		for(double n = c->start; n <= c->end; n += 1.0/c->range)
+		{
+			// C has a function for hyperbolic tangents defined in math.h
+			throwaway = tanh(n);
+		}
+
+		printf("Process %d exiting. Last number calculated was %f\n",child_num, throwaway);
 
 		// Free unused resources
 		free(c);
