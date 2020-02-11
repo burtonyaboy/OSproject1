@@ -2,8 +2,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdlib.h>
 
-typedef struct child_data
+struct child_data
 {
 	double start;
 	double end;
@@ -13,13 +14,11 @@ typedef struct child_data
 int main(int argc, const char **argv)
 {
 	// default number of processes
-	int pid[8], processn = 1, is_parent = 1, child_num = 0;
-	unsigned int calc_num = 10000;
+	int processn = 1, is_parent = 1, child_num = 0;
+	unsigned long calc_num = 10000;
 	// max 8 processes for now, later we can dynamically allocate this
 	pid_t process_ids[8];
-	//memset(procedd_ids, 1, 8*sizeof(pid_t));
-	char message[] = "My parent says hi...";
-	char *message_buf;
+
 	// now make the pipe handles, this will be dynamically allocated soon
 	int p[8][2];
 
@@ -47,9 +46,10 @@ int main(int argc, const char **argv)
 
 	/* Check the calculation count */
 	// Make sure calculation count is actually a positive integer
-	if(0 >= (calc_num = atoi(argv[2])))
+	// TODO: change atoi to something that returns a long
+	if(0 >= (calc_num = (unsigned long) atoi(argv[2])))
 	{
-		printf("Error: %s is not an integer greater than zero.\n");
+		printf("Error: %s is not an integer greater than zero.\n", argv[2]);
 		return -1;
 	}
 	else if(calc_num % processn != 0)
@@ -134,7 +134,7 @@ int main(int argc, const char **argv)
 		printf("I am process %d and I do start: %f end: %f range: %d\n", child_num, c->start, c->end, c->range);
 		
 		/* TODO: add calculations */
-		
+
 		// Free unused resources
 		free(c);
 		close(p[child_num][0]);
