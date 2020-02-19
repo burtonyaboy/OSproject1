@@ -4,13 +4,20 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include <time.h>
 
-struct child_data
+struct child_in
 {
 	double start;
 	double end;
 	unsigned int range;
 };
+
+typedef struct child_out 
+{
+	double result;
+	clock_t cc;
+} Cout;
 
 int main(int argc, const char **argv)
 {
@@ -21,7 +28,12 @@ int main(int argc, const char **argv)
 	pid_t process_ids[8];
 
 	// now make the pipe handles, this will be dynamically allocated soon
-	int p[8][2];
+	int p[16][2];
+
+	clock_t start_t, end_t, total_t;
+	time_t startt_t, endt_t, totalt_t;
+	start_t = clock();
+	startt_t = time(0);
 
 	/* Begin validating input */
 
@@ -59,7 +71,7 @@ int main(int argc, const char **argv)
 	}
 
 	// Create the pipes
-	for(int i = 0; i < 8; i++)
+	for(int i = 0; i < 16; i++)
 	{
 		// Make the pipes. The function returns < 0 if something fails
 		// so we check that.
@@ -93,15 +105,19 @@ int main(int argc, const char **argv)
 	//This is what the parent does
 	if(is_parent)
 	{
+		double result = 0.0;
+		clock_t total_cc;
+		Cout tmp;
+
 		for(int i = 0; i < processn; i++)
 		{
 			/* Set up child data */
 
-			// Allocate enough memory for a child_data structure
+			// Allocate enough memory for a child_in structure
 			// and save a pointer to it
-			struct child_data *c = (struct child_data *) malloc(sizeof(struct child_data));
+			struct child_in *c = (struct child_in *) malloc(sizeof(struct child_in));
 			
-			// Populate the child_data struct with numbers it needs
+			// Populate the child_in struct with numbers it needs
 			// for calculations
 			c->start = ((float)i)/processn;
 			c->end = ((float)i+1)/processn - 1.0/calc_num;
@@ -112,7 +128,7 @@ int main(int argc, const char **argv)
 			// Write into the appropriate pipe
 			// the address of the structure we created
 			// and last the size of the structure we are passing
-			write(p[i][1], c, sizeof(struct child_data));
+			write(p[i][1], c, sizeof(struct child_in));
 
 			/* Free unused resources */
 			// Release the write pipe
@@ -120,34 +136,52 @@ int main(int argc, const char **argv)
 			// Free the memory we allocated
 			free(c);
 		}
+		//Now read the results :)
+		for(int i = 0; i < processn; i++)
+		{
+			read(p[i+8][0], &tmp, sizeof(Cout));
+			result += tmp.result;
+			total_cc += tmp.cc;
+			close(p[i+8]);
+		}
+		printf("Result is: %f\n",result);
+
+		totalt_t = time(0) - startt_t;
+		printf("The program took %lu cycles to execute.\n", tmp.cc);
+		printf("The program took %d seconds to execute.\n", totalt_t);
 	}
 	//This is what the children do
 	else
 	{
+		start_t = clock();
 		// Allocate some memory for the data that will be read
-		struct child_data *c = (struct child_data *) malloc(sizeof(struct child_data));
-
+		struct child_in *c = (struct child_in *) malloc(sizeof(struct child_in));
+		Cout child_out;
 		// Attempt to read from pipe
-		if(read(p[child_num][0], c, sizeof(struct child_data)) < 0)
+		if(read(p[child_num][0], c, sizeof(struct child_in)) < 0)
 			printf("Process %d couldn't read from parent!!!\n", child_num);
 
 		// Print the results (for test purposes)
 		//printf("I am process %d and I do start: %f end: %f range: %d\n", child_num, c->start, c->end, c->range);
 		
 		/* Do the calculations */
-		double throwaway = 1.23;
+		double result = 0.0;
 		// Start and end at values given by parent, increment one step each time.
 		for(double n = c->start; n <= c->end; n += 1.0/c->range)
 		{
 			// C has a function for hyperbolic tangents defined in math.h
-			throwaway = tanh(n);
+			result += tanh(n);
 		}
 
-		printf("Process %d exiting. Last number calculated was %f\n",child_num, throwaway);
+		child_out.result = result;
+		child_out.cc = clock() - start_t; 
 
+		write(p[child_num + 8][1], &child_out, sizeof(Cout));
 		// Free unused resources
 		free(c);
+
 		close(p[child_num][0]);
+		close(p[child_num+8][1]);
 	}
 
 	// Program finished successfully. Return 0 to let calling program know.
