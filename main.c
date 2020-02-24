@@ -123,7 +123,7 @@ int main(int argc, const char **argv)
 			// Populate the child_in struct with numbers it needs
 			// for calculations
 			c->start = ((float)i)/processn;
-			c->end = ((float)i+1)/processn - 1.0/calc_num;
+			c->end = ((float)i+1)/processn;// - 1.0/calc_num;
 			c->range = calc_num / processn;
 			
 			// Write into the appropriate pipe
@@ -146,7 +146,7 @@ int main(int argc, const char **argv)
 			result += tmp.result;
 			total_cc += tmp.cc;
 			
-			printf("Child %d took %lu ms CPU time\n", i, ms_cpu_time(tmp.cc));
+			printf("Child %d took %lu ms CPU time and returned %f\n", i, ms_cpu_time(tmp.cc),tmp.result);
 			
 			close(p[i+8][0]);
 		}
@@ -185,10 +185,11 @@ int main(int argc, const char **argv)
 		/* Do the calculations */
 		double result = 0.0;
 		// Start and end at values given by parent, increment one step each time.
-		for(double n = c->start; n <= c->end; n += 1.0/c->range)
+		for(double n = c->start; n < c->end; n += 1.0/calc_num)
 		{
 			// C has a function for hyperbolic tangents defined in math.h
 			result += tanh(n);
+			//printf("result is %f at point %f\n",tanh(n), n);
 		}
 
 		child_out.result = result;
