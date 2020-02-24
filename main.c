@@ -141,32 +141,37 @@ int main(int argc, const char **argv)
 		//Now read the results :)
 		for(int i = 0; i < processn; i++)
 		{
+			// Read pipe
 			read(p[i+8][0], &tmp, sizeof(Cout));
 			
+			// Save results
 			result += tmp.result;
 			total_cc += tmp.cc;
 			
-			printf("Child %d took %lu ms CPU time and returned %f\n", i, ms_cpu_time(tmp.cc),tmp.result);
+			// Print child report
+			printf("Child %d CPU TIME:\t%lu\n", i, ms_cpu_time(tmp.cc));
 			
+			// Close pipe
 			close(p[i+8][0]);
 		}
 
-		printf("Result is: %f\n",result);
-		
+
+		// Collect total time		
 		long total_t, ms_start = spec.tv_nsec;
 		int s_start = spec.tv_sec;
 		clock_gettime(CLOCK_MONOTONIC, &spec);
 		
-		//totalt_t = time(0) - startt_t;
-		
+		// This is how we get final
 		if(spec.tv_sec - s_start >= 1)
 			total_t = 1000000000 * (spec.tv_sec - s_start) + (spec.tv_nsec - ms_start);
 		else
 			total_t = spec.tv_nsec - ms_start;
 
 
-		printf("The program took %lu ms CPU time to execute.\n", ms_cpu_time(total_cc));
-		printf("The program took %lu milliseconds to execute.\n", (total_t)/1000000);
+		printf("CPU TIME:\t%lu\n", ms_cpu_time(total_cc));
+		printf("WALL CLOCK:\t%lu\n", (total_t)/1000000);
+
+		printf("Result is: %f\n",result);
 	}
 	//This is what the children do
 	else
@@ -179,9 +184,6 @@ int main(int argc, const char **argv)
 		if(read(p[child_num][0], c, sizeof(struct child_in)) < 0)
 			printf("Process %d couldn't read from parent!!!\n", child_num);
 
-		// Print the results (for test purposes)
-		printf("I am process %d and I do start: %f end: %f range: %lu\n", child_num, c->start, c->end, c->range);
-		
 		/* Do the calculations */
 		double result = 0.0;
 		// Start and end at values given by parent, increment one step each time.
@@ -189,7 +191,6 @@ int main(int argc, const char **argv)
 		{
 			// C has a function for hyperbolic tangents defined in math.h
 			result += tanh(n);
-			//printf("result is %f at point %f\n",tanh(n), n);
 		}
 
 		child_out.result = result;
