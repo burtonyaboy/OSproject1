@@ -111,7 +111,7 @@ int main(int argc, const char **argv)
 	if(is_parent)
 	{
 		double result = 0.0;
-		clock_t total_cc;
+		clock_t total_cc = 0;
 		Cout tmp;
 
 		for(int i = 0; i < processn; i++)
