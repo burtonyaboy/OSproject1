@@ -10,7 +10,7 @@ struct child_in
 {
 	double start;
 	double end;
-	unsigned int range;
+	unsigned long range;
 };
 
 typedef struct child_out 
@@ -18,6 +18,11 @@ typedef struct child_out
 	double result;
 	clock_t cc;
 } Cout;
+
+long ms_cpu_time(clock_t cc)
+{
+	return (unsigned long) (cc*1000) / CLOCKS_PER_SEC;
+}
 
 int main(int argc, const char **argv)
 {
@@ -30,10 +35,10 @@ int main(int argc, const char **argv)
 	// now make the pipe handles, this will be dynamically allocated soon
 	int p[16][2];
 
-	clock_t start_t, end_t, total_t;
-	time_t startt_t, endt_t, totalt_t;
-	start_t = clock();
-	startt_t = time(0);
+	clock_t start_t = clock();
+	
+	struct timespec spec;
+	clock_gettime(CLOCK_MONOTONIC,&spec);
 
 	/* Begin validating input */
 
@@ -111,8 +116,6 @@ int main(int argc, const char **argv)
 
 		for(int i = 0; i < processn; i++)
 		{
-			/* Set up child data */
-
 			// Allocate enough memory for a child_in structure
 			// and save a pointer to it
 			struct child_in *c = (struct child_in *) malloc(sizeof(struct child_in));
@@ -123,32 +126,47 @@ int main(int argc, const char **argv)
 			c->end = ((float)i+1)/processn - 1.0/calc_num;
 			c->range = calc_num / processn;
 			
-			/* Write data for child into the pipe */
-
 			// Write into the appropriate pipe
 			// the address of the structure we created
 			// and last the size of the structure we are passing
 			write(p[i][1], c, sizeof(struct child_in));
 
-			/* Free unused resources */
 			// Release the write pipe
 			close(p[i][1]);
+
 			// Free the memory we allocated
 			free(c);
 		}
+		
 		//Now read the results :)
 		for(int i = 0; i < processn; i++)
 		{
 			read(p[i+8][0], &tmp, sizeof(Cout));
+			
 			result += tmp.result;
 			total_cc += tmp.cc;
-			close(p[i+8]);
+			
+			printf("Child %d took %lu ms CPU time\n", i, ms_cpu_time(tmp.cc));
+			
+			close(p[i+8][0]);
 		}
-		printf("Result is: %f\n",result);
 
-		totalt_t = time(0) - startt_t;
-		printf("The program took %lu cycles to execute.\n", tmp.cc);
-		printf("The program took %d seconds to execute.\n", totalt_t);
+		printf("Result is: %f\n",result);
+		
+		long total_t, ms_start = spec.tv_nsec;
+		int s_start = spec.tv_sec;
+		clock_gettime(CLOCK_MONOTONIC, &spec);
+		
+		//totalt_t = time(0) - startt_t;
+		
+		if(spec.tv_sec - s_start >= 1)
+			total_t = 1000000000 * (spec.tv_sec - s_start) + (spec.tv_nsec - ms_start);
+		else
+			total_t = spec.tv_nsec - ms_start;
+
+
+		printf("The program took %lu ms CPU time to execute.\n", ms_cpu_time(total_cc));
+		printf("The program took %lu milliseconds to execute.\n", (total_t)/1000000);
 	}
 	//This is what the children do
 	else
@@ -162,7 +180,7 @@ int main(int argc, const char **argv)
 			printf("Process %d couldn't read from parent!!!\n", child_num);
 
 		// Print the results (for test purposes)
-		//printf("I am process %d and I do start: %f end: %f range: %d\n", child_num, c->start, c->end, c->range);
+		printf("I am process %d and I do start: %f end: %f range: %lu\n", child_num, c->start, c->end, c->range);
 		
 		/* Do the calculations */
 		double result = 0.0;
