@@ -6,6 +6,7 @@
 #include <math.h>
 #include <time.h>
 
+// Structure to hold data for children
 struct child_in
 {
 	double start;
@@ -13,12 +14,14 @@ struct child_in
 	unsigned long range;
 };
 
+// Structure to hold data for parent
 typedef struct child_out 
 {
 	double result;
 	clock_t cc;
 } Cout;
 
+// Calculate time in ms from clock cycles
 long ms_cpu_time(clock_t cc)
 {
 	return (unsigned long) (cc*1000) / CLOCKS_PER_SEC;
@@ -161,8 +164,9 @@ int main(int argc, const char **argv)
 		int s_start = spec.tv_sec;
 		clock_gettime(CLOCK_MONOTONIC, &spec);
 		
-		// This is how we get final
+		// This is how we get final wall clock time
 		if(spec.tv_sec - s_start >= 1)
+			// If more than 1 second has passed, we need both seconds and nanoseconds
 			total_t = 1000000000 * (spec.tv_sec - s_start) + (spec.tv_nsec - ms_start);
 		else
 			total_t = spec.tv_nsec - ms_start;
